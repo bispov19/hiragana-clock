@@ -48,7 +48,7 @@ fc-cache -f
 ## Instalação a partir do código
 
 ```bash
-git clone https://github.com/viniciusbispo19/hiragana-clock.git
+git clone https://github.com/bispov19/hiragana-clock.git
 cd hiragana-clock
 glib-compile-schemas hiragana-clock@viniciusbispo19.github.io/schemas/
 mkdir -p ~/.local/share/gnome-shell/extensions

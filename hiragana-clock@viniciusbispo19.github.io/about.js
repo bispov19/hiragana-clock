@@ -25,7 +25,7 @@ import * as Hiragana from './hiragana.js';
 // ===========================================================================
 const AUTHOR = {
     name: 'Vinicius Bispo',
-    githubUser: 'viniciusbispo19',
+    githubUser: 'bispov19',
 };
 
 // O kanji de cada dia da semana é um "elemento" (a mesma ordem de
