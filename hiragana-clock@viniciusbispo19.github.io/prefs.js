@@ -20,6 +20,9 @@ import Pango from 'gi://Pango'; // descrição de fontes (família, peso, tamanh
 // é o recurso do aplicativo de preferências, não do gnome-shell.
 import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
+// A aba "Sobre mim" mora no seu próprio módulo (about.js).
+import {buildAboutPage} from './about.js';
+
 // Valores gravados no GSettings (iguais aos <choice> do schema) e os rótulos
 // mostrados ao usuário, na MESMA ordem. O índice do ComboRow liga os dois.
 const ANCHORS = [
@@ -104,9 +107,9 @@ export default class HiraganaClockPreferences extends ExtensionPreferences {
 
         const marginRows = [
             this._spinRow(settings, 'margin-x', 0, 2000, 4,
-                'Distância horizontal', 'Pixels até a borda esquerda/direita (ignorado no centro)'),
+                'Distância horizontal', 'Pixels até a borda esquerda/direita (mínimo 40; ignorado no centro)'),
             this._spinRow(settings, 'margin-y', 0, 2000, 4,
-                'Distância vertical', 'Pixels até a borda superior/inferior (ignorado no centro)'),
+                'Distância vertical', 'Pixels até a borda superior/inferior (mínimo 40; ignorado no centro)'),
         ];
         marginRows.forEach(row => placeGroup.add(row));
 
@@ -145,6 +148,10 @@ export default class HiraganaClockPreferences extends ExtensionPreferences {
 
         panelGroup.add(this._switchRow(settings, 'hide-default-clock',
             'Esconder o relógio do painel', 'Ele volta ao desativar a extensão'));
+
+        // Segunda aba. this.metadata é o metadata.json já lido pelo GNOME
+        // (nome, versão, url), então a aba nunca fica desatualizada.
+        window.add(buildAboutPage({metadata: this.metadata, window}));
     }
 
     // Adw.SwitchRow (interruptor) ligada a uma chave booleana.

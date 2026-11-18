@@ -55,6 +55,12 @@ const ANCHORS = {
     'custom': ['START', 'START'],
 };
 
+// Distância mínima, em pixels, entre o widget e QUALQUER borda da área útil
+// da tela. Vale para tudo: âncoras (mesmo com distância 0 nas preferências),
+// posição livre e arrasto. Sem isso, arrastar até o canto deixava o texto
+// encostado na borda do monitor.
+const SAFE_MARGIN = 40;
+
 // Esquemas de cor → classe CSS aplicada na raiz do widget (ver
 // stylesheet.css). Só o prateado usa o degradê (shader).
 const COLOR_STYLES = {
@@ -331,11 +337,6 @@ const HiraganaWidget = GObject.registerClass({
     }
 
     _onDragBegin() {
-        // "Grab": enquanto o botão estiver pressionado, TODOS os eventos do
-        // mouse vêm para este ator, mesmo se o ponteiro passar por cima de
-        // outra coisa (o Shell faz igual nos sliders).
-        this._grab = global.stage.grab(this);
-
         // Onde o widget está agora, relativo ao contêiner. A "allocation" é
         // a caixa que o layout deu ao ator, já descontadas as margens.
         const box = this.get_allocation_box();
@@ -344,7 +345,13 @@ const HiraganaWidget = GObject.registerClass({
 
         // Passamos para posição livre já no começo, na mesma posição em que
         // o widget está: assim ele não "pula" ao começar a arrastar.
+        // (Antes do grab: com o grab ativo, setPlacement é ignorado.)
         this.setPlacement('custom', 0, 0, box.x1, box.y1);
+
+        // "Grab": enquanto o botão estiver pressionado, TODOS os eventos do
+        // mouse vêm para este ator, mesmo se o ponteiro passar por cima de
+        // outra coisa (o Shell faz igual nos sliders).
+        this._grab = global.stage.grab(this);
     }
 
     _onDragUpdate() {
@@ -380,13 +387,24 @@ const HiraganaWidget = GObject.registerClass({
         this._grab = null;
     }
 
-    // Mantém o widget inteiro dentro do contêiner (a área útil da tela),
-    // para nunca arrastá-lo para fora de alcance.
+    // Mantém o widget inteiro dentro do contêiner (a área útil da tela) e
+    // a pelo menos SAFE_MARGIN pixels de cada borda.
+    //
+    // O tamanho vem de get_preferred_size() da caixa de dentro: é o tamanho
+    // que o texto PEDE, já conhecido antes de o layout rodar. (O tamanho
+    // alocado, this.width, só é atualizado no próximo quadro, e ainda
+    // incluiria as margens.) Retorna [mín. largura, mín. altura, largura
+    // natural, altura natural]; usamos as naturais.
     _clampToParent(x, y) {
         const parent = this.get_parent();
-        const maxX = Math.max(0, parent.width - this.width);
-        const maxY = Math.max(0, parent.height - this.height);
-        return [Math.clamp(x, 0, maxX), Math.clamp(y, 0, maxY)];
+        if (!parent)
+            return [x, y];
+        const [, , width, height] = this._box.get_preferred_size();
+        // Se o widget for maior que a tela, max fica menor que min; o
+        // Math.max garante que ele ao menos comece SAFE_MARGIN da borda.
+        const maxX = Math.max(SAFE_MARGIN, parent.width - width - SAFE_MARGIN);
+        const maxY = Math.max(SAFE_MARGIN, parent.height - height - SAFE_MARGIN);
+        return [Math.clamp(x, SAFE_MARGIN, maxX), Math.clamp(y, SAFE_MARGIN, maxY)];
     }
 
     // --- Conteúdo e aparência -------------------------------------------------
@@ -445,16 +463,30 @@ const HiraganaWidget = GObject.registerClass({
 
     // Aplica a posição. Quem calcula onde o widget fica é o Clutter.BinLayout
     // do contêiner (ver _createWidget): ele dá ao widget a área toda, e o
-    // widget se encaixa nela conforme x_align/y_align e as margens. Se o texto
-    // mudar de largura, o widget continua no canto certo sem fazermos conta.
+    // widget se encaixa nela conforme x_align/y_align e as margens.
+    //
+    // A extensão chama este método de novo sempre que o tamanho do widget
+    // pode ter mudado (texto do dia, fonte, resolução), para refazer o
+    // limite das bordas: すいようび é mais largo que かようび, então uma
+    // posição livre que cabia na terça poderia vazar na quarta.
     setPlacement(anchor, marginX, marginY, customX, customY) {
+        // Durante o arrasto quem manda é o mouse; ignorar evita que uma
+        // atualização do relógio no meio do arrasto faça o widget "pular".
+        if (this._grab)
+            return;
+
         const [xAlign, yAlign] = ANCHORS[anchor] ?? ANCHORS['center-left'];
         this.x_align = Clutter.ActorAlign[xAlign];
         this.y_align = Clutter.ActorAlign[yAlign];
 
         if (anchor === 'custom') {
-            // Posição livre: as margens SÃO as coordenadas.
-            [marginX, marginY] = [customX, customY];
+            // Posição livre: as margens SÃO as coordenadas, limitadas para
+            // o widget caber inteiro com folga em todas as bordas.
+            [marginX, marginY] = this._clampToParent(customX, customY);
+        } else {
+            // Âncoras: a distância escolhida, mas nunca menos que a folga.
+            marginX = Math.max(marginX, SAFE_MARGIN);
+            marginY = Math.max(marginY, SAFE_MARGIN);
         }
         // A margem só vale do lado da borda à qual estamos presos; no
         // centro, nenhuma (senão o widget sairia do centro).
@@ -548,8 +580,9 @@ export default class HiraganaClockExtension extends Extension {
         Main.layoutManager._backgroundGroup.add_child(this._container);
 
         this._applyAppearance();
-        this._applyPlacement();
         this._widget.setDraggable(this._settings.get_boolean('draggable'));
+        // Por último: define o tamanho do contêiner e, com ele conhecido,
+        // aplica a posição (o limite das bordas depende desse tamanho).
         this._updateContainerGeometry();
 
         // A área útil muda com monitores, resolução, painel e docks. Estes
@@ -582,6 +615,8 @@ export default class HiraganaClockExtension extends Extension {
             Main.layoutManager.primaryIndex);
         this._container.set_position(workArea.x, workArea.y);
         this._container.set_size(workArea.width, workArea.height);
+        // Tela de outro tamanho: refaz o limite das bordas.
+        this._applyPlacement();
     }
 
     _applyPlacement() {
@@ -610,6 +645,8 @@ export default class HiraganaClockExtension extends Extension {
         this._widget.setFontSize(s.get_int('font-size'));
         this._widget.setFonts(s.get_string('hiragana-font'), s.get_string('date-font'));
         this._widget.setColorStyle(s.get_string('color-style'));
+        // Fonte ou tamanho novos mudam a largura do widget: refaz o limite.
+        this._applyPlacement();
     }
 
     // --- Relógio padrão do painel -------------------------------------------
@@ -699,6 +736,9 @@ export default class HiraganaClockExtension extends Extension {
             kanji: s.get_boolean('show-kanji') ? Hiragana.formatKanji(parts) : '',
             time,
         });
+        // O texto novo pode ter outra largura (すいようび é mais largo que
+        // かようび; a hora muda a cada minuto): refaz o limite das bordas.
+        this._applyPlacement();
     }
 
     // --- Timers -------------------------------------------------------------

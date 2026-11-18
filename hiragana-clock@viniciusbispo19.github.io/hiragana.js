@@ -230,7 +230,8 @@ export function minuteToHiragana(minute, {showChoudo = false} = {}) {
 // ---------------------------------------------------------------------------
 
 const KANJI_DIGITS = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
-const KANJI_WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
+// Exportada: a aba "Sobre mim" das preferências usa para a colinha dos dias.
+export const KANJI_WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 
 // Numerais kanji tradicionais (não posicionais): 10 = 十, 11 = 十一,
 // 20 = 二十, 31 = 三十一. Repare que não se escreve 一十 para 10–19.
@@ -249,7 +250,7 @@ export function numberToKanji(n) {
 // Português (sem depender do locale do sistema, para o resultado ser previsível)
 // ---------------------------------------------------------------------------
 
-const PT_WEEKDAYS = [
+export const PT_WEEKDAYS = [
     'domingo', 'segunda-feira', 'terça-feira', 'quarta-feira',
     'quinta-feira', 'sexta-feira', 'sábado',
 ];

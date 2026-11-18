@@ -1,7 +1,7 @@
 {
   "uuid": "hiragana-clock@viniciusbispo19.github.io",
   "name": "Hiragana Clock",
-  "description": "Widget na área de trabalho que mostra a data e a hora em hiragana, com kanji e português.",
+  "description": "Aprenda um pouco de japonês toda vez que olhar para a tela: um widget na área de trabalho que mostra o dia da semana em hiragana (げつようび, かようび…), em uma fonte de pincel, com a data e o ano ao lado.\n\n• Data em kanji (十一月十日 火曜日) e hora em hiragana, opcionais\n• Cores: prateado com degradê, branco ou preto\n• Arraste o widget para qualquer lugar da tela\n• Clique com o botão direito no widget para abrir as preferências\n\nFontes recomendadas: Yuji Syuku e League Gothic.\nVeja imagens e instruções na página inicial do projeto.",
   "shell-version": [
     "50",
     "51"

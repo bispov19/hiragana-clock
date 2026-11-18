@@ -17,6 +17,7 @@ A ideia veio do widget *Hiragana Calendar* do KDE Plasma (de zayronXIO), que nã
 - **Arraste com o mouse** para qualquer lugar da tela, ou escolha uma das 9 posições fixas.
 - Clique com o botão direito no widget para abrir as preferências.
 - Opção de esconder o relógio padrão do painel superior.
+- Aba **Sobre mim** nas preferências, com créditos e uma colinha dos dias da semana: kanji, leitura, português e o elemento de cada dia.
 
 As leituras irregulares do japonês são tratadas uma a uma: dias como ついたち, はつか e じゅうよっか, horas como よじ e くじ, e minutos como いっぷん e じゅっぷん. Os testes conferem os 31 dias do mês, as 24 horas e os 60 minutos.
 
